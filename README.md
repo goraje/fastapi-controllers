@@ -4,8 +4,9 @@
         A simple solution for organizing your FastAPI endpoints
     </p>
     <p align="center">
-    <img src="https://badgen.net/badge/python/3.8|3.9|3.10|3.11/blue?icon=pypi"/>
-    <img src="https://badgen.net/badge/license/MIT/blue"/>
+    <img src="https://badgen.net/pypi/v/fastapi-controllers"/>
+    <img src="https://badgen.net/pypi/license/fastapi-controllers"/>
+    <img src="https://badgen.net/pypi/python/fastapi-controllers"/>
     <img src="https://github.com/goraje/fastapi-controllers/actions/workflows/test.yml/badge.svg">
     </p>
 </p>

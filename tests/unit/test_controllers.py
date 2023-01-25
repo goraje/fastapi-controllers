@@ -87,6 +87,4 @@ def describe_Controller() -> None:
                 FakeController.fake_method,
                 deprecated=True,
                 methods=["GET"],
-                name="fake_method",
-                description="No description provided.",
             )
