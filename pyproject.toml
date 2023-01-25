@@ -1,0 +1,82 @@
+[tool.poetry]
+name = "fastapi-controllers"
+version = "0.1.0"
+description = "Simple Controller implementation for FastAPI"
+authors = ["Jerzy Góra <j.gora89@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/goraje/fastapi-controllers"
+repository = "https://github.com/goraje/fastapi-controllers"
+keywords = ["fastapi", "controller", "cbv", "routing"]
+classifiers = [
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Framework :: FastAPI",
+    "Topic :: Software Development :: Libraries",
+]
+packages = [
+    { include = "fastapi_controllers" },
+    { include = "tests", format = "sdist" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+fastapi = "*"
+
+[tool.poetry.group.lint]
+optional = true
+
+[tool.poetry.group.lint.dependencies]
+black = "*"
+isort = "*"
+ruff = "*"
+pre-commit = "*"
+
+[tool.poetry.group.test]
+optional = true
+
+[tool.poetry.group.test.dependencies]
+pytest = "*"
+pytest-describe = "*"
+pytest-spec = "*"
+httpx = "*"
+pytest-cov = "*"
+pytest-mock = "*"
+
+[tool.poetry.group.typing]
+optional = true
+
+[tool.poetry.group.typing.dependencies]
+mypy = "*"
+
+[tool.black]
+line-length = 150
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+line_length = 150
+
+[tool.ruff]
+line-length = 150
+select = ["B", "E", "F", "PIE"]
+
+[tool.ruff.mccabe]
+max-complexity = 10
+
+[tool.pytest.ini_options]
+addopts = """--color=yes \
+--spec \
+--cov=fastapi_controllers \
+--cov-report=term-missing \
+--cov-fail-under=90"""
+console_output_style = "classic"
+
+[tool.mypy]
+disallow_untyped_defs = true
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
