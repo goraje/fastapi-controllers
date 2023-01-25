@@ -32,8 +32,6 @@ class _RouteDecorator:
 
     def __call__(self, func: Callable[..., Any]) -> Callable[..., Any]:
         self.kwargs["methods"] = [self.method]
-        self.kwargs["name"] = self.kwargs.get("name") or func.__name__
-        self.kwargs["description"] = func.__doc__ or "No description provided."
         func.__api_route_data__ = SimpleNamespace(args=self.args, kwargs=self.kwargs)  # type: ignore
         return func
 

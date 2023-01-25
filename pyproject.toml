@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fastapi-controllers"
-version = "0.1.0"
+version = "0.1.1"
 description = "Simple Controller implementation for FastAPI"
 authors = ["Jerzy Góra <j.gora89@gmail.com>"]
 license = "MIT"

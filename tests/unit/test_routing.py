@@ -46,8 +46,6 @@ def describe_RouteDecorator() -> None:
             kwargs={
                 "keyword": "TEST",
                 "methods": ["GET"],
-                "name": "fake_method",
-                "description": "No description provided.",
             },
         )
 
@@ -55,12 +53,7 @@ def describe_RouteDecorator() -> None:
         wrapped = fake("/test", keyword="TEST")(fake_method)
         assert isinstance(wrapped.__api_route_data__, SimpleNamespace)  # type: ignore
         assert wrapped.__api_route_data__.args == ("/test",)  # type: ignore
-        assert wrapped.__api_route_data__.kwargs == {  # type: ignore
-            "keyword": "TEST",
-            "methods": ["GET"],
-            "name": "fake_method",
-            "description": "No description provided.",
-        }
+        assert wrapped.__api_route_data__.kwargs == {"keyword": "TEST", "methods": ["GET"]}  # type: ignore
 
 
 def describe_decorators() -> None:
