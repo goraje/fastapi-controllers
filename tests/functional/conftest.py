@@ -4,8 +4,9 @@ import time
 import pytest
 from fastapi import Depends, FastAPI, Response, status
 from fastapi.testclient import TestClient
+from fastapi.websockets import WebSocket
 
-from fastapi_controllers import Controller, delete, get, head, options, patch, post, put, trace
+from fastapi_controllers import Controller, delete, get, head, options, patch, post, put, trace, websocket
 
 
 def sync_dependency() -> str:
@@ -96,6 +97,12 @@ class AsyncTestController(Controller):
     @trace("", response_class=Response)
     async def test_trace(self) -> Response:
         return Response(status_code=status.HTTP_200_OK)
+
+    @websocket("/ws")
+    async def websocket(websocket: WebSocket) -> None:  # type: ignore
+        await websocket.accept()
+        await websocket.send_json({"msg": "Hello WebSocket"})
+        await websocket.close()
 
 
 @pytest.fixture

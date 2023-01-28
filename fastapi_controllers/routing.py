@@ -1,68 +1,77 @@
-from enum import Enum
-from types import SimpleNamespace
-from typing import Any, Callable
+from typing import Any, Callable, Dict, Tuple
 
+from fastapi_controllers.definitions import Route, RouteData, RouteDefinition
 from fastapi_controllers.helpers import _validate_against_apirouter_signature
 
 
-class _HTTPRequestMethod(str, Enum):
-    DELETE = "DELETE"
-    GET = "GET"
-    HEAD = "HEAD"
-    OPTIONS = "OPTIONS"
-    PATCH = "PATCH"
-    POST = "POST"
-    PUT = "PUT"
-    TRACE = "TRACE"
-
-
 class _RouteDecorator:
-    method: str
+    _route_definition: RouteDefinition
 
-    def __init_subclass__(cls, method: _HTTPRequestMethod) -> None:
+    def __init_subclass__(cls, route_definition: RouteDefinition) -> None:
         super().__init_subclass__()
-        cls.method = method
+        cls._route_definition = route_definition
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self.args = args
-        if self.args and callable(self.args[0]):
-            raise TypeError("You must provide a path for the route.")
-        self.kwargs = kwargs
-        _validate_against_apirouter_signature(self.method.lower(), args=args, kwargs=kwargs)
+        self.route_args = args
+        self.route_kwargs = kwargs
+        _validate_against_apirouter_signature(self._route_definition.binds, args=args, kwargs=kwargs)
 
     def __call__(self, func: Callable[..., Any]) -> Callable[..., Any]:
-        self.kwargs["methods"] = [self.method]
-        func.__api_route_data__ = SimpleNamespace(args=self.args, kwargs=self.kwargs)  # type: ignore
+        func.__route_data__ = RouteData(  # type: ignore
+            route_definition=self._route_definition,
+            route_args=self.route_args,
+            route_kwargs=self.route_kwargs,
+        )
         return func
 
+    @property
+    def route_args(self) -> Tuple[Any, ...]:
+        return self._route_args
 
-class delete(_RouteDecorator, method=_HTTPRequestMethod.DELETE):
+    @route_args.setter
+    def route_args(self, value: Tuple[Any, ...]) -> None:
+        self._route_args = value
+
+    @property
+    def route_kwargs(self) -> Dict[str, Any]:
+        return self._route_kwargs
+
+    @route_kwargs.setter
+    def route_kwargs(self, value: Dict[str, Any]) -> None:
+        self._route_kwargs = value
+
+
+class delete(_RouteDecorator, route_definition=Route.delete):
     ...
 
 
-class get(_RouteDecorator, method=_HTTPRequestMethod.GET):
+class get(_RouteDecorator, route_definition=Route.get):
     ...
 
 
-class head(_RouteDecorator, method=_HTTPRequestMethod.HEAD):
+class head(_RouteDecorator, route_definition=Route.head):
     ...
 
 
-class options(_RouteDecorator, method=_HTTPRequestMethod.OPTIONS):
+class options(_RouteDecorator, route_definition=Route.options):
     ...
 
 
-class patch(_RouteDecorator, method=_HTTPRequestMethod.PATCH):
+class patch(_RouteDecorator, route_definition=Route.patch):
     ...
 
 
-class post(_RouteDecorator, method=_HTTPRequestMethod.POST):
+class post(_RouteDecorator, route_definition=Route.post):
     ...
 
 
-class put(_RouteDecorator, method=_HTTPRequestMethod.PUT):
+class put(_RouteDecorator, route_definition=Route.put):
     ...
 
 
-class trace(_RouteDecorator, method=_HTTPRequestMethod.TRACE):
+class trace(_RouteDecorator, route_definition=Route.trace):
+    ...
+
+
+class websocket(_RouteDecorator, route_definition=Route.websocket):
     ...
