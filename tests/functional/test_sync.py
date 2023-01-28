@@ -2,14 +2,14 @@ import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from fastapi_controllers.routing import _HTTPRequestMethod
+from fastapi_controllers.definitions import HTTPRequestMethod
 
 
 def describe_test_controller_sync() -> None:
-    @pytest.mark.parametrize("http_request_method", _HTTPRequestMethod.__members__.values())
+    @pytest.mark.parametrize("http_request_method", HTTPRequestMethod.__members__.values())
     def it_responds_to_http_methods(
         sync_test_client: TestClient,
-        http_request_method: _HTTPRequestMethod,
+        http_request_method: HTTPRequestMethod,
     ) -> None:
         request_func = getattr(sync_test_client, http_request_method.lower(), None)
         if request_func:

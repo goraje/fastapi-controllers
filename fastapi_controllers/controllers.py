@@ -1,10 +1,10 @@
 import inspect
 from enum import Enum
-from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from fastapi import APIRouter, params
 
+from fastapi_controllers.definitions import HTTPRouteDefinition, RouteData, WebsocketRouteDefinition
 from fastapi_controllers.helpers import _replace_signature, _validate_against_apirouter_signature
 
 
@@ -33,12 +33,21 @@ class Controller:
         router = APIRouter(**cls.__router_params__)  # type: ignore
         for _, func in inspect.getmembers(cls, predicate=inspect.isfunction):
             _replace_signature(cls, func)
-            api_route_data: Optional[SimpleNamespace] = getattr(func, "__api_route_data__", None)
-            if api_route_data:
-                router.add_api_route(
-                    api_route_data.args[0],
-                    func,
-                    *api_route_data.args[1:],
-                    **api_route_data.kwargs,
-                )
+            route_data: Optional[RouteData] = getattr(func, "__route_data__", None)
+            if route_data:
+                if isinstance(route_data.route_definition, HTTPRouteDefinition):
+                    router.add_api_route(
+                        route_data.route_args[0],
+                        func,
+                        *route_data.route_args[1:],
+                        methods=[route_data.route_definition.request_method],
+                        **route_data.route_kwargs,
+                    )
+                if isinstance(route_data.route_definition, WebsocketRouteDefinition):
+                    router.add_api_websocket_route(
+                        route_data.route_args[0],
+                        func,
+                        *route_data.route_args[1:],
+                        **route_data.route_kwargs,
+                    )
         return router

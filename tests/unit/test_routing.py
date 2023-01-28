@@ -1,29 +1,33 @@
-from types import SimpleNamespace
 from typing import Type
 from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
 
-from fastapi_controllers.routing import _HTTPRequestMethod, _RouteDecorator, delete, get, head, options, patch, post, put, trace
+from fastapi_controllers.definitions import HTTPRequestMethod, RouteData, RouteDefinition
+from fastapi_controllers.routing import _RouteDecorator, delete, get, head, options, patch, post, put, trace
 
-DEFINITIONS = {
-    delete: _HTTPRequestMethod.DELETE,
-    get: _HTTPRequestMethod.GET,
-    head: _HTTPRequestMethod.HEAD,
-    options: _HTTPRequestMethod.OPTIONS,
-    patch: _HTTPRequestMethod.PATCH,
-    post: _HTTPRequestMethod.POST,
-    put: _HTTPRequestMethod.PUT,
-    trace: _HTTPRequestMethod.TRACE,
+HTTP_DECO_DEFINITIONS = {
+    delete: HTTPRequestMethod.DELETE,
+    get: HTTPRequestMethod.GET,
+    head: HTTPRequestMethod.HEAD,
+    options: HTTPRequestMethod.OPTIONS,
+    patch: HTTPRequestMethod.PATCH,
+    post: HTTPRequestMethod.POST,
+    put: HTTPRequestMethod.PUT,
+    trace: HTTPRequestMethod.TRACE,
 }
+
+
+class FakeDefinition(RouteDefinition):
+    ...
 
 
 def fake_method() -> None:
     ...
 
 
-class fake(_RouteDecorator, method=_HTTPRequestMethod.GET):
+class fake(_RouteDecorator, route_definition=FakeDefinition(binds="fake")):
     ...
 
 
@@ -33,37 +37,33 @@ def validator(mocker: MockerFixture) -> MagicMock:
 
 
 def describe_RouteDecorator() -> None:
-    def it_enforces_the_path_parameter() -> None:
-        with pytest.raises(TypeError) as exc:
-            fake(fake_method)
-        assert str(exc.value) == "You must provide a path for the route."
-
     def it_validates_the_parameters_of_the_decorated_method(validator: MagicMock) -> None:
         fake("/test", keyword="TEST")(fake_method)
         validator.assert_called_once_with(
-            fake.method.lower(),
+            fake._route_definition.binds,
             args=("/test",),
             kwargs={
                 "keyword": "TEST",
-                "methods": ["GET"],
             },
         )
 
-    def it_adds_api_route_data_to_the_decorated_method(validator: MagicMock) -> None:
+    def it_adds_route_data_to_the_decorated_method(validator: MagicMock) -> None:
         wrapped = fake("/test", keyword="TEST")(fake_method)
-        assert isinstance(wrapped.__api_route_data__, SimpleNamespace)  # type: ignore
-        assert wrapped.__api_route_data__.args == ("/test",)  # type: ignore
-        assert wrapped.__api_route_data__.kwargs == {"keyword": "TEST", "methods": ["GET"]}  # type: ignore
+        assert isinstance(wrapped.__route_data__, RouteData)  # type: ignore
+        assert isinstance(wrapped.__route_data__.route_definition, FakeDefinition)  # type: ignore
+        assert wrapped.__route_data__.route_definition.binds == "fake"  # type: ignore
+        assert wrapped.__route_data__.route_args == ("/test",)  # type: ignore
+        assert wrapped.__route_data__.route_kwargs == {"keyword": "TEST"}  # type: ignore
 
 
 def describe_decorators() -> None:
-    @pytest.mark.parametrize("decorator", DEFINITIONS.keys())
+    @pytest.mark.parametrize("decorator", HTTP_DECO_DEFINITIONS.keys())
     def it_is_a_subclass_of_route_decorator(decorator: Type[_RouteDecorator]) -> None:
         assert issubclass(decorator, _RouteDecorator)
 
-    @pytest.mark.parametrize("decorator,method", DEFINITIONS.items())
+    @pytest.mark.parametrize("decorator,method", HTTP_DECO_DEFINITIONS.items())
     def it_handles_the_proper_http_request_method(
         decorator: Type[_RouteDecorator],
-        method: _HTTPRequestMethod,
+        method: HTTPRequestMethod,
     ) -> None:
-        assert decorator.method == method
+        assert decorator._route_definition.request_method == method  # type: ignore
