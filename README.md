@@ -34,6 +34,7 @@ pip install fastapi-controllers
 ```python
 import uvicorn
 from fastapi import FastAPI, Response, status
+from fastapi.websockets import WebSocket
 
 from fastapi_controllers import Controller, get
 
@@ -42,6 +43,13 @@ class ExampleController(Controller):
     @get("/example", response_class=Response)
     async def get_example(self) -> Response:
         return Response(status_code=status.HTTP_200_OK)
+
+    @websocket("/ws")
+    async def ws_example(websocket: WebSocket) -> None:
+        await websocket.accept()
+        while True:
+            data = await websocket.receive_text()
+            await websocket.send_text(f"Received: {data}")
 
 
 if __name__ == "__main__":
@@ -54,12 +62,12 @@ FastAPI's `APIRouter` is created and populated with API routes by the `Controlle
 
 ## Seamless integration
 
-The router-related parameters as well as those of HTTP request-specific decorators are expected to be the same as those used by `fastapi.APIRouter` and `fastapi.APIRouter.<request_method>`. Validation of the provided parameters is performed during initialization via the `inspect` module. This ensures compatibility with the FastAPI framework and prevents the introduction of a new, unnecessary naming convention.
+The router-related parameters as well as those of HTTP request-specific and websocket decorators are expected to be the same as those used by `fastapi.APIRouter`, `fastapi.APIRouter.<request_method>` and `fastapi.APIRouter.websocket`. Validation of the provided parameters is performed during initialization via the `inspect` module. This ensures compatibility with the FastAPI framework and prevents the introduction of a new, unnecessary naming convention.
 
-### Supported HTTP request methods
+### Available decorators
 
 ```python
-from fastapi_controllers import delete, get, head, options, patch, post, put, trace
+from fastapi_controllers import delete, get, head, options, patch, post, put, trace, websocket
 ```
 
 ## Use class variables to customize your APIRouter

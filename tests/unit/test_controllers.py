@@ -5,7 +5,7 @@ from fastapi import APIRouter
 from pytest_mock import MockerFixture
 
 from fastapi_controllers.controllers import Controller
-from fastapi_controllers.routing import get
+from fastapi_controllers.routing import get, websocket
 
 
 @pytest.fixture(autouse=True)
@@ -80,6 +80,10 @@ def describe_Controller() -> None:
                 def fake_method(self) -> None:
                     ...
 
+                @websocket("/ws")
+                def fake_ws(self) -> None:
+                    ...
+
             FakeController.create_router()
             apirouter.assert_called_once_with(prefix="/test", dependencies=None, tags=None)
             apirouter.return_value.add_api_route.assert_called_once_with(
@@ -87,4 +91,8 @@ def describe_Controller() -> None:
                 FakeController.fake_method,
                 deprecated=True,
                 methods=["GET"],
+            )
+            apirouter.return_value.add_api_websocket_route.assert_called_once_with(
+                "/ws",
+                FakeController.fake_ws,
             )
