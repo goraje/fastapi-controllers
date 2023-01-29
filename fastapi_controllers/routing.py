@@ -1,7 +1,7 @@
 from typing import Any, Callable, Dict, Tuple
 
 from fastapi_controllers.definitions import Route, RouteData, RouteDefinition
-from fastapi_controllers.helpers import _validate_against_apirouter_signature
+from fastapi_controllers.helpers import _validate_against_signature
 
 
 class _RouteDecorator:
@@ -14,7 +14,7 @@ class _RouteDecorator:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.route_args = args
         self.route_kwargs = kwargs
-        _validate_against_apirouter_signature(self._route_definition.binds, args=args, kwargs=kwargs)
+        _validate_against_signature(self._route_definition.binds, args=args, kwargs=kwargs)
 
     def __call__(self, func: Callable[..., Any]) -> Callable[..., Any]:
         func.__route_data__ = RouteData(  # type: ignore

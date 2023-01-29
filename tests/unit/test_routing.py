@@ -1,3 +1,4 @@
+import weakref
 from typing import Type
 from unittest.mock import MagicMock
 
@@ -23,17 +24,24 @@ class FakeDefinition(RouteDefinition):
     ...
 
 
+def original_method() -> None:
+    ...
+
+
 def fake_method() -> None:
     ...
 
 
-class fake(_RouteDecorator, route_definition=FakeDefinition(binds="fake")):
+binds = weakref.proxy(original_method)
+
+
+class fake(_RouteDecorator, route_definition=FakeDefinition(binds=binds)):
     ...
 
 
 @pytest.fixture
 def validator(mocker: MockerFixture) -> MagicMock:
-    return mocker.patch("fastapi_controllers.routing._validate_against_apirouter_signature")
+    return mocker.patch("fastapi_controllers.routing._validate_against_signature")
 
 
 def describe_RouteDecorator() -> None:
@@ -51,7 +59,7 @@ def describe_RouteDecorator() -> None:
         wrapped = fake("/test", keyword="TEST")(fake_method)
         assert isinstance(wrapped.__route_data__, RouteData)  # type: ignore
         assert isinstance(wrapped.__route_data__.route_definition, FakeDefinition)  # type: ignore
-        assert wrapped.__route_data__.route_definition.binds == "fake"  # type: ignore
+        assert wrapped.__route_data__.route_definition.binds == binds  # type: ignore
         assert wrapped.__route_data__.route_args == ("/test",)  # type: ignore
         assert wrapped.__route_data__.route_kwargs == {"keyword": "TEST"}  # type: ignore
 

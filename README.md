@@ -36,7 +36,7 @@ import uvicorn
 from fastapi import FastAPI, Response, status
 from fastapi.websockets import WebSocket
 
-from fastapi_controllers import Controller, get
+from fastapi_controllers import Controller, get, websocket
 
 
 class ExampleController(Controller):
@@ -141,8 +141,7 @@ if __name__ == "__main__":
     app.include_router(ExampleController.create_router())
     uvicorn.run(app)
 ```
->**Important**:
->**Beware of assigning values to the same parameter twice (directly on class-level and through `__router_params__`). The values stored in `__router_params__` have precedence and will override your other settings if a name conflict arises. E.g. the following `Controller` would create an `APIRouter` with `prefix=/override`, `tags=["override"]` and `dependencies=[Depends(override)]`**
+> :warning: **Important**: Beware of assigning values to the same parameter twice (directly on class-level and through `__router_params__`). The values stored in `__router_params__` have precedence and will override your other settings if a name conflict arises. E.g. the following `Controller` would create an `APIRouter` with `prefix=/override`, `tags=["override"]` and `dependencies=[Depends(override)]`
 
 ```python
 from fastapi import Depends
@@ -203,6 +202,5 @@ class ExampleController(Controller):
 if __name__ == "__main__":
     app = FastAPI()
     app.include_router(ExampleController.create_router())
-    uvicorn.run(app)
     uvicorn.run(app)
 ```
