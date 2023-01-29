@@ -1,11 +1,12 @@
 import inspect
+import weakref
 from typing import Any, Callable, Dict, Optional, Tuple, Type
 
-from fastapi import APIRouter, Depends
+from fastapi import Depends
 
 
-def _validate_against_apirouter_signature(
-    method_name: str,
+def _validate_against_signature(
+    method: weakref.CallableProxyType,
     args: Optional[Tuple[Any, ...]] = None,
     kwargs: Optional[Dict[str, Any]] = None,
 ) -> None:
@@ -17,7 +18,7 @@ def _validate_against_apirouter_signature(
         args: The positional arguments of the method.
         kwargs: The keyword arguments of the method.
     """
-    target_sig = inspect.signature(getattr(APIRouter, method_name))
+    target_sig = inspect.signature(method)
     valid_sig = target_sig.replace(parameters=list(target_sig.parameters.values())[1:])
     valid_sig.bind(*(args or tuple()), **(kwargs or {}))
 

@@ -10,7 +10,7 @@ from fastapi_controllers.routing import get, websocket
 
 @pytest.fixture(autouse=True)
 def validator(mocker: MockerFixture) -> MagicMock:
-    return mocker.patch("fastapi_controllers.controllers._validate_against_apirouter_signature")
+    return mocker.patch("fastapi_controllers.controllers._validate_against_signature")
 
 
 def describe_Controller() -> None:
@@ -32,12 +32,16 @@ def describe_Controller() -> None:
             "deprecated": True,
         }
 
-    def it_validates_apirouter_parameters(validator: MagicMock) -> None:
+    def it_validates_apirouter_parameters(mocker: MockerFixture, validator: MagicMock) -> None:
+
+        mocked_proxy = mocker.patch("weakref.proxy", return_value="FAKE_PROXY")
+
         class _(Controller):
             ...
 
+        mocked_proxy.assert_called_once_with(APIRouter.__init__)
         validator.assert_called_once_with(
-            "__init__",
+            "FAKE_PROXY",
             kwargs={
                 "prefix": "",
                 "dependencies": None,

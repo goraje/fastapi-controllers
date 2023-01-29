@@ -1,11 +1,12 @@
 import inspect
+import weakref
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from fastapi import APIRouter, params
 
 from fastapi_controllers.definitions import HTTPRouteDefinition, RouteData, WebsocketRouteDefinition
-from fastapi_controllers.helpers import _replace_signature, _validate_against_apirouter_signature
+from fastapi_controllers.helpers import _replace_signature, _validate_against_signature
 
 
 class Controller:
@@ -20,7 +21,7 @@ class Controller:
         for param in ["prefix", "dependencies", "tags"]:
             if not cls.__router_params__.get(param):
                 cls.__router_params__[param] = getattr(cls, param)
-        _validate_against_apirouter_signature("__init__", kwargs=cls.__router_params__)
+        _validate_against_signature(weakref.proxy(APIRouter.__init__), kwargs=cls.__router_params__)
 
     @classmethod
     def create_router(cls) -> APIRouter:

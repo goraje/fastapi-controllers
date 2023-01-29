@@ -1,59 +1,54 @@
 import inspect
+import weakref
 from typing import Any
 
 import pytest
 from fastapi import params
-from pytest_mock import MockerFixture
 
-from fastapi_controllers.helpers import _replace_signature, _validate_against_apirouter_signature
-
-
-def fake_method(fake_self: Any, positional: Any, *, keyword: "str") -> None:
-    ...
+from fastapi_controllers.helpers import _replace_signature, _validate_against_signature
 
 
-@pytest.fixture(autouse=True)
-def apirouter(mocker: MockerFixture) -> None:
-    mocked_apirouter = mocker.patch("fastapi_controllers.helpers.APIRouter")
-    mocked_apirouter.test = fake_method
+class Fake:
+    def fake_method(self, positional: Any, *, keyword: "str") -> None:
+        ...
 
 
-def describe_validate_against_apirouter_signature() -> None:
-    def it_validates_method_parameters_agains_apirouter() -> None:
-        _validate_against_apirouter_signature(
-            method_name="test",
+def describe_validate_against_signature() -> None:
+    def it_validates_method_parameters_against_the_desired_signature() -> None:
+        _validate_against_signature(
+            weakref.proxy(Fake.fake_method),
             args=("test",),
             kwargs={"keyword": "TEST"},
         )
 
     def it_raises_an_error_on_missing_positional_args() -> None:
         with pytest.raises(TypeError):
-            _validate_against_apirouter_signature(
-                method_name="test",
+            _validate_against_signature(
+                weakref.proxy(Fake.fake_method),
                 args=tuple(),
                 kwargs={"keyword": "TEST"},
             )
 
     def it_raises_an_error_on_missing_keyword_args() -> None:
         with pytest.raises(TypeError):
-            _validate_against_apirouter_signature(
-                method_name="test",
+            _validate_against_signature(
+                weakref.proxy(Fake.fake_method),
                 args=("test",),
                 kwargs={},
             )
 
     def it_raises_an_error_on_additional_keyword_args() -> None:
         with pytest.raises(TypeError):
-            _validate_against_apirouter_signature(
-                method_name="test",
+            _validate_against_signature(
+                weakref.proxy(Fake.fake_method),
                 args=("test",),
                 kwargs={"keyword": "TEST", "additional": "TEST"},
             )
 
     def it_raises_an_error_on_additional_positional_args() -> None:
         with pytest.raises(TypeError):
-            _validate_against_apirouter_signature(
-                method_name="test",
+            _validate_against_signature(
+                weakref.proxy(Fake.fake_method),
                 args=("test", "test"),
                 kwargs={},
             )
