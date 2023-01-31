@@ -1,12 +1,11 @@
 import inspect
-import weakref
 from typing import Any, Callable, Dict, Optional, Tuple, Type
 
 from fastapi import Depends
 
 
 def _validate_against_signature(
-    method: weakref.CallableProxyType,
+    method: Callable[..., Any],
     args: Optional[Tuple[Any, ...]] = None,
     kwargs: Optional[Dict[str, Any]] = None,
 ) -> None:
@@ -23,14 +22,21 @@ def _validate_against_signature(
     valid_sig.bind(*(args or tuple()), **(kwargs or {}))
 
 
-def _replace_signature(cls: Type, func: Callable[..., Any]) -> None:
+def _replace_signature(klass: Type, func: Callable[..., Any]) -> None:
+    """
+    Replace the 'self' attribute with a FastAPI Depends injection.
+
+    Args:
+        klass: The class that will be injected.
+        func: The function whose signature will be replaced.
+    """
     orig_sig = inspect.signature(func)
     new_params = [
         param.replace(
             kind=inspect.Parameter.KEYWORD_ONLY,
         )
         if param.name != "self"
-        else param.replace(default=Depends(cls))
+        else param.replace(default=Depends(klass))
         for param in list(orig_sig.parameters.values())
     ]
     func.__signature__ = orig_sig.replace(parameters=new_params)  # type: ignore

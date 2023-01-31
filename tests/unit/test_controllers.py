@@ -1,16 +1,30 @@
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 from fastapi import APIRouter
 from pytest_mock import MockerFixture
 
-from fastapi_controllers.controllers import Controller
+from fastapi_controllers.controllers import Controller, _is_route
+from fastapi_controllers.definitions import Route
 from fastapi_controllers.routing import get, websocket
 
 
 @pytest.fixture(autouse=True)
 def validator(mocker: MockerFixture) -> MagicMock:
     return mocker.patch("fastapi_controllers.controllers._validate_against_signature")
+
+
+IS_ROUTE_SCENARIOS = [
+    (Route(endpoint="TEST", route_meta="TEST", route_args="TEST", route_kwargs="TEST"), True),  # type: ignore
+    (type("NotRoute", (), {}), False),
+]
+
+
+def describe_is_route() -> None:
+    @pytest.mark.parametrize("obj,expected", IS_ROUTE_SCENARIOS)
+    def it_validates_if_obj_is_a_route(obj: Any, expected: bool) -> None:
+        assert _is_route(obj) is expected
 
 
 def describe_Controller() -> None:
@@ -34,14 +48,13 @@ def describe_Controller() -> None:
 
     def it_validates_apirouter_parameters(mocker: MockerFixture, validator: MagicMock) -> None:
 
-        mocked_proxy = mocker.patch("weakref.proxy", return_value="FAKE_PROXY")
+        mocked_apirouter_init = mocker.patch("fastapi_controllers.controllers.APIRouter.__init__")
 
         class _(Controller):
             ...
 
-        mocked_proxy.assert_called_once_with(APIRouter.__init__)
         validator.assert_called_once_with(
-            "FAKE_PROXY",
+            mocked_apirouter_init,
             kwargs={
                 "prefix": "",
                 "dependencies": None,
@@ -72,7 +85,7 @@ def describe_Controller() -> None:
                     ...
 
             FakeController.create_router()
-            replace.assert_called_once_with(FakeController, FakeController.fake_method)
+            replace.assert_called_once_with(FakeController, FakeController.fake_method.endpoint)
 
         def it_configures_the_router_and_routes(mocker: MockerFixture) -> None:
             apirouter = mocker.patch("fastapi_controllers.controllers.APIRouter")
@@ -92,11 +105,11 @@ def describe_Controller() -> None:
             apirouter.assert_called_once_with(prefix="/test", dependencies=None, tags=None)
             apirouter.return_value.add_api_route.assert_called_once_with(
                 "/get",
-                FakeController.fake_method,
+                FakeController.fake_method.endpoint,
                 deprecated=True,
                 methods=["GET"],
             )
             apirouter.return_value.add_api_websocket_route.assert_called_once_with(
                 "/ws",
-                FakeController.fake_ws,
+                FakeController.fake_ws.endpoint,
             )
