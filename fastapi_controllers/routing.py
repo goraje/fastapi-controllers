@@ -1,28 +1,28 @@
 from typing import Any, Callable, Dict, Tuple
 
-from fastapi_controllers.definitions import Route, RouteData, RouteDefinition
+from fastapi_controllers.definitions import Route, RouteMeta, RouteMetadata
 from fastapi_controllers.helpers import _validate_against_signature
 
 
 class _RouteDecorator:
-    _route_definition: RouteDefinition
+    route_meta: RouteMeta
 
-    def __init_subclass__(cls, route_definition: RouteDefinition) -> None:
+    def __init_subclass__(cls, route_meta: RouteMeta) -> None:
         super().__init_subclass__()
-        cls._route_definition = route_definition
+        cls.route_meta = route_meta
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.route_args = args
         self.route_kwargs = kwargs
-        _validate_against_signature(self._route_definition.binds, args=args, kwargs=kwargs)
+        _validate_against_signature(self.route_meta.binds, args=args, kwargs=kwargs)
 
-    def __call__(self, func: Callable[..., Any]) -> Callable[..., Any]:
-        func.__route_data__ = RouteData(  # type: ignore
-            route_definition=self._route_definition,
+    def __call__(self, endpoint: Callable[..., Any]) -> Route:
+        return Route(
+            endpoint=endpoint,
+            route_meta=self.route_meta,
             route_args=self.route_args,
             route_kwargs=self.route_kwargs,
         )
-        return func
 
     @property
     def route_args(self) -> Tuple[Any, ...]:
@@ -41,37 +41,37 @@ class _RouteDecorator:
         self._route_kwargs = value
 
 
-class delete(_RouteDecorator, route_definition=Route.delete):
+class delete(_RouteDecorator, route_meta=RouteMetadata.delete):
     ...
 
 
-class get(_RouteDecorator, route_definition=Route.get):
+class get(_RouteDecorator, route_meta=RouteMetadata.get):
     ...
 
 
-class head(_RouteDecorator, route_definition=Route.head):
+class head(_RouteDecorator, route_meta=RouteMetadata.head):
     ...
 
 
-class options(_RouteDecorator, route_definition=Route.options):
+class options(_RouteDecorator, route_meta=RouteMetadata.options):
     ...
 
 
-class patch(_RouteDecorator, route_definition=Route.patch):
+class patch(_RouteDecorator, route_meta=RouteMetadata.patch):
     ...
 
 
-class post(_RouteDecorator, route_definition=Route.post):
+class post(_RouteDecorator, route_meta=RouteMetadata.post):
     ...
 
 
-class put(_RouteDecorator, route_definition=Route.put):
+class put(_RouteDecorator, route_meta=RouteMetadata.put):
     ...
 
 
-class trace(_RouteDecorator, route_definition=Route.trace):
+class trace(_RouteDecorator, route_meta=RouteMetadata.trace):
     ...
 
 
-class websocket(_RouteDecorator, route_definition=Route.websocket):
+class websocket(_RouteDecorator, route_meta=RouteMetadata.websocket):
     ...

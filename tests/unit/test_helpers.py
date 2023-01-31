@@ -1,5 +1,4 @@
 import inspect
-import weakref
 from typing import Any
 
 import pytest
@@ -16,7 +15,7 @@ class Fake:
 def describe_validate_against_signature() -> None:
     def it_validates_method_parameters_against_the_desired_signature() -> None:
         _validate_against_signature(
-            weakref.proxy(Fake.fake_method),
+            Fake.fake_method,
             args=("test",),
             kwargs={"keyword": "TEST"},
         )
@@ -24,7 +23,7 @@ def describe_validate_against_signature() -> None:
     def it_raises_an_error_on_missing_positional_args() -> None:
         with pytest.raises(TypeError):
             _validate_against_signature(
-                weakref.proxy(Fake.fake_method),
+                Fake.fake_method,
                 args=tuple(),
                 kwargs={"keyword": "TEST"},
             )
@@ -32,7 +31,7 @@ def describe_validate_against_signature() -> None:
     def it_raises_an_error_on_missing_keyword_args() -> None:
         with pytest.raises(TypeError):
             _validate_against_signature(
-                weakref.proxy(Fake.fake_method),
+                Fake.fake_method,
                 args=("test",),
                 kwargs={},
             )
@@ -40,7 +39,7 @@ def describe_validate_against_signature() -> None:
     def it_raises_an_error_on_additional_keyword_args() -> None:
         with pytest.raises(TypeError):
             _validate_against_signature(
-                weakref.proxy(Fake.fake_method),
+                Fake.fake_method,
                 args=("test",),
                 kwargs={"keyword": "TEST", "additional": "TEST"},
             )
@@ -48,7 +47,7 @@ def describe_validate_against_signature() -> None:
     def it_raises_an_error_on_additional_positional_args() -> None:
         with pytest.raises(TypeError):
             _validate_against_signature(
-                weakref.proxy(Fake.fake_method),
+                Fake.fake_method,
                 args=("test", "test"),
                 kwargs={},
             )

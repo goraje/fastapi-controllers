@@ -1,12 +1,24 @@
 import inspect
-import weakref
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from fastapi import APIRouter, params
 
-from fastapi_controllers.definitions import HTTPRouteDefinition, RouteData, WebsocketRouteDefinition
+from fastapi_controllers.definitions import HTTPRouteMeta, Route, WebsocketRouteMeta
 from fastapi_controllers.helpers import _replace_signature, _validate_against_signature
+
+
+def _is_route(obj: Any) -> bool:
+    """
+    Check if an object is an instance of Route.
+
+    Args:
+        obj: The object to be checked.
+
+    Returns:
+        True if the checked object is an instanc of Route.
+    """
+    return isinstance(obj, Route)
 
 
 class Controller:
@@ -21,7 +33,7 @@ class Controller:
         for param in ["prefix", "dependencies", "tags"]:
             if not cls.__router_params__.get(param):
                 cls.__router_params__[param] = getattr(cls, param)
-        _validate_against_signature(weakref.proxy(APIRouter.__init__), kwargs=cls.__router_params__)
+        _validate_against_signature(APIRouter.__init__, kwargs=cls.__router_params__)
 
     @classmethod
     def create_router(cls) -> APIRouter:
@@ -31,24 +43,22 @@ class Controller:
         Returns:
             APIRouter: An APIRouter instance.
         """
-        router = APIRouter(**cls.__router_params__)  # type: ignore
-        for _, func in inspect.getmembers(cls, predicate=inspect.isfunction):
-            _replace_signature(cls, func)
-            route_data: Optional[RouteData] = getattr(func, "__route_data__", None)
-            if route_data:
-                if isinstance(route_data.route_definition, HTTPRouteDefinition):
-                    router.add_api_route(
-                        route_data.route_args[0],
-                        func,
-                        *route_data.route_args[1:],
-                        methods=[route_data.route_definition.request_method],
-                        **route_data.route_kwargs,
-                    )
-                if isinstance(route_data.route_definition, WebsocketRouteDefinition):
-                    router.add_api_websocket_route(
-                        route_data.route_args[0],
-                        func,
-                        *route_data.route_args[1:],
-                        **route_data.route_kwargs,
-                    )
+        router = APIRouter(**(cls.__router_params__ or {}))
+        for _, route in inspect.getmembers(cls, predicate=_is_route):
+            _replace_signature(cls, route.endpoint)
+            if isinstance(route.route_meta, HTTPRouteMeta):
+                router.add_api_route(
+                    route.route_args[0],
+                    route.endpoint,
+                    *route.route_args[1:],
+                    methods=[route.route_meta.request_method],
+                    **route.route_kwargs,
+                )
+            if isinstance(route.route_meta, WebsocketRouteMeta):
+                router.add_api_websocket_route(
+                    route.route_args[0],
+                    route.endpoint,
+                    *route.route_args[1:],
+                    **route.route_kwargs,
+                )
         return router

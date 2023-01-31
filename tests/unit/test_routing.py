@@ -1,11 +1,10 @@
-import weakref
 from typing import Type
 from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
 
-from fastapi_controllers.definitions import HTTPRequestMethod, RouteData, RouteDefinition
+from fastapi_controllers.definitions import HTTPRequestMethod, Route, RouteMeta
 from fastapi_controllers.routing import _RouteDecorator, delete, get, head, options, patch, post, put, trace
 
 HTTP_DECO_DEFINITIONS = {
@@ -20,7 +19,7 @@ HTTP_DECO_DEFINITIONS = {
 }
 
 
-class FakeDefinition(RouteDefinition):
+class FakeMeta(RouteMeta):
     ...
 
 
@@ -32,10 +31,10 @@ def fake_method() -> None:
     ...
 
 
-binds = weakref.proxy(original_method)
+binds = original_method
 
 
-class fake(_RouteDecorator, route_definition=FakeDefinition(binds=binds)):
+class fake(_RouteDecorator, route_meta=FakeMeta(binds=binds)):
     ...
 
 
@@ -48,20 +47,20 @@ def describe_RouteDecorator() -> None:
     def it_validates_the_parameters_of_the_decorated_method(validator: MagicMock) -> None:
         fake("/test", keyword="TEST")(fake_method)
         validator.assert_called_once_with(
-            fake._route_definition.binds,
+            fake.route_meta.binds,
             args=("/test",),
             kwargs={
                 "keyword": "TEST",
             },
         )
 
-    def it_adds_route_data_to_the_decorated_method(validator: MagicMock) -> None:
-        wrapped = fake("/test", keyword="TEST")(fake_method)
-        assert isinstance(wrapped.__route_data__, RouteData)  # type: ignore
-        assert isinstance(wrapped.__route_data__.route_definition, FakeDefinition)  # type: ignore
-        assert wrapped.__route_data__.route_definition.binds == binds  # type: ignore
-        assert wrapped.__route_data__.route_args == ("/test",)  # type: ignore
-        assert wrapped.__route_data__.route_kwargs == {"keyword": "TEST"}  # type: ignore
+    def it_creates_a_route_instance_for_the_decorated_method(validator: MagicMock) -> None:
+        route = fake("/test", keyword="TEST")(fake_method)
+        assert isinstance(route, Route)
+        assert isinstance(route.route_meta, FakeMeta)
+        assert route.route_meta.binds == binds
+        assert route.route_args == ("/test",)
+        assert route.route_kwargs == {"keyword": "TEST"}
 
 
 def describe_decorators() -> None:
@@ -74,4 +73,4 @@ def describe_decorators() -> None:
         decorator: Type[_RouteDecorator],
         method: HTTPRequestMethod,
     ) -> None:
-        assert decorator._route_definition.request_method == method  # type: ignore
+        assert decorator.route_meta.request_method == method  # type: ignore
