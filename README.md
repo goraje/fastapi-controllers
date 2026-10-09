@@ -18,10 +18,11 @@
 ## Features
 
 - class-based approach to organizing FastAPI endpoints
+- route decorators with exactly the arguments of their `APIRouter` counterparts, checked by type checkers and completed by IDEs
 - class-scoped definition of APIRouter parameters
 - instance-scoped definition of FastAPI dependencies
-- it integrates seamlessly with the FastAPI framework
-- works with both sync and async endpoints
+- sync, async and websocket endpoints
+- controller inheritance
 
 ## Installation
 
@@ -32,39 +33,37 @@ pip install fastapi-controllers
 ## Minimal working example
 
 ```python
-import uvicorn
-from fastapi import FastAPI, Response, status
-from fastapi.websockets import WebSocket
+from fastapi import FastAPI, WebSocket
 
 from fastapi_controllers import Controller, get, websocket
 
 
 class ExampleController(Controller):
-    @get("/example", response_class=Response)
-    async def get_example(self) -> Response:
-        return Response(status_code=status.HTTP_200_OK)
+    @get("/example")
+    async def get_example(self) -> dict[str, str]:
+        return {"message": "Hello"}
 
     @websocket("/ws")
-    async def ws_example(websocket: WebSocket) -> None:
-        await websocket.accept()
+    async def ws_example(self, ws: WebSocket) -> None:
+        await ws.accept()
         while True:
-            data = await websocket.receive_text()
-            await websocket.send_text(f"Received: {data}")
+            data = await ws.receive_text()
+            await ws.send_text(f"Received: {data}")
 
 
-if __name__ == "__main__":
-    app = FastAPI()
-    app.include_router(ExampleController.create_router())
-    uvicorn.run(app)
+app = FastAPI()
+app.include_router(ExampleController.create_router())
 ```
 
-FastAPI's `APIRouter` is created and populated with API routes by the `Controller.create_router` method and can be incorporated into the application in the usual way via `app.include_router`.
+`Controller.create_router` creates a FastAPI `APIRouter` and populates it with the controller's routes. Include it in the application in the usual way, with `app.include_router`.
 
-## Seamless integration
+## Same arguments as FastAPI
 
-The router-related parameters as well as those of HTTP request-specific and websocket decorators are expected to be the same as those used by `fastapi.APIRouter`, `fastapi.APIRouter.<request_method>` and `fastapi.APIRouter.websocket`. Validation of the provided parameters is performed during initialization via the `inspect` module. This ensures compatibility with the FastAPI framework and prevents the introduction of a new, unnecessary naming convention.
+Each decorator takes exactly the arguments of the matching `APIRouter` method. For example, `get` has the signature of `APIRouter.get`, and `websocket` has the signature of `APIRouter.websocket`. There is no new naming convention to learn:
 
-### Available decorators
+- mypy, pyright and ty check the arguments, and IDEs complete them;
+- an unknown or missing argument raises `TypeError` as soon as the class is defined;
+- a decorated method keeps its type and stays callable as an ordinary method.
 
 ```python
 from fastapi_controllers import delete, get, head, options, patch, post, put, trace, websocket
@@ -72,11 +71,12 @@ from fastapi_controllers import delete, get, head, options, patch, post, put, tr
 
 ## Use class variables to customize your APIRouter
 
-Class variables can be used to set the commonly used APIRouter parameters: `prefix`, `dependencies` and `tags`.
+The class variables `prefix`, `tags` and `dependencies` set the APIRouter parameters of the same names.
 
 ```python
-import uvicorn
-from fastapi import Depends, FastAPI, Response, status
+from typing import Annotated
+
+from fastapi import Depends, FastAPI, params
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 
@@ -85,8 +85,9 @@ from fastapi_controllers import Controller, get, post
 security = HTTPBasic()
 
 
-async def authorized_user(credentials: HTTPBasicCredentials = Depends(security)) -> None:
-    ...
+async def authorized_user(
+    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+) -> None: ...
 
 
 class ExampleRequest(BaseModel):
@@ -100,76 +101,49 @@ class ExampleResponse(BaseModel):
 class ExampleController(Controller):
     prefix = "/example"
     tags = ["example"]
-    dependencies = [Depends(authorized_user)]
+    dependencies = [params.Depends(authorized_user)]
 
-    @get("", response_class=Response)
-    async def get_example(self) -> Response:
-        return Response(status_code=status.HTTP_200_OK)
+    @get("")
+    async def get_example(self) -> ExampleResponse:
+        return ExampleResponse(message="Hello")
 
-    @post("", response_model=ExampleResponse)
+    @post("")
     async def post_example(self, data: ExampleRequest) -> ExampleResponse:
         return ExampleResponse(message=f"Hello, {data.name}!")
 
 
-if __name__ == "__main__":
-    app = FastAPI()
-    app.include_router(ExampleController.create_router())
-    uvicorn.run(app)
+app = FastAPI()
+app.include_router(ExampleController.create_router())
 ```
-### Additional APIRouter parameters
-Additional APIRouter parameters can be provided via the `__router_params__` class variable in form of a mapping.
+
+Pass any other router parameter to `app.include_router`, which accepts most of them:
 
 ```python
-import uvicorn
-from fastapi import FastAPI, Response, status
-
-from fastapi_controllers import Controller, get
-
-
-class ExampleController(Controller):
-    prefix = "/example"
-    tags = ["example"]
-    __router_params__ = {"deprecated": True}
-
-    @get("", response_class=Response)
-    async def get_example(self) -> Response:
-        return Response(status_code=status.HTTP_200_OK)
-
-
-if __name__ == "__main__":
-    app = FastAPI()
-    app.include_router(ExampleController.create_router())
-    uvicorn.run(app)
-```
-> :warning: **Important**: Beware of assigning values to the same parameter twice (directly on class-level and through `__router_params__`). The values stored in `__router_params__` have precedence and will override your other settings if a name conflict arises. E.g. the following `Controller` would create an `APIRouter` with `prefix=/override`, `tags=["override"]` and `dependencies=[Depends(override)]`
-
-```python
-from fastapi import Depends
+from fastapi import FastAPI
 
 from fastapi_controllers import Controller
 
 
 class ExampleController(Controller):
     prefix = "/example"
-    tags = ["example"]
-    dependencies = [Depends(example)]
-    __router_params__ = {
-        "prefix": "/override",
-        "tags": ["override"],
-        "dependencies": [Depends(override)],
-    }
-```
 
+
+app = FastAPI()
+app.include_router(
+    ExampleController.create_router(),
+    deprecated=True,
+    responses={404: {"description": "Not found"}},
+)
+```
 
 ## Instance-scoped dependencies
 
-Instance-scoped attributes can be defined in the `__init__` method of the `Controller` and offer an easy way to access common dependencies for all endpoints.
+Define instance-scoped attributes in the controller's `__init__`. They give every endpoint easy access to common dependencies. FastAPI resolves the `__init__` dependencies and builds a fresh controller instance for each request.
 
 ```python
-import json
+from typing import Annotated
 
-import uvicorn
-from fastapi import Depends, FastAPI, Response, status
+from fastapi import Depends, FastAPI
 
 from fastapi_controllers import Controller, get
 
@@ -187,20 +161,40 @@ async def get_db_session() -> DbSession:
 class ExampleController(Controller):
     prefix = "/example"
 
-    def __init__(self, session: DbSession = Depends(get_db_session)) -> None:
+    def __init__(self, session: Annotated[DbSession, Depends(get_db_session)]) -> None:
         self.session = session
 
-    @get("", response_class=Response)
-    async def get_status(self) -> Response:
-        return Response(
-            content=json.dumps({"status": f"{self.session.status}"}),
-            status_code=status.HTTP_200_OK,
-            media_type="application/json",
-        )
+    @get("")
+    async def get_status(self) -> dict[str, str]:
+        return {"status": self.session.status}
 
 
-if __name__ == "__main__":
-    app = FastAPI()
-    app.include_router(ExampleController.create_router())
-    uvicorn.run(app)
+app = FastAPI()
+app.include_router(ExampleController.create_router())
+```
+
+## Route order and inheritance
+
+Routes are registered in the order they are defined, so `/me` defined before `/{item_id}` takes precedence. A subclass inherits the routes of its base controllers. To override a route, redefine the method **and decorate it again**. The override keeps the original route's position.
+
+```python
+from fastapi_controllers import Controller, get
+
+
+class BaseController(Controller):
+    @get("/me")
+    async def me(self) -> str:
+        return "me"
+
+    @get("/{item_id}")
+    async def item(self, item_id: int) -> int:
+        return item_id
+
+
+class ChildController(BaseController):
+    prefix = "/child"
+
+    @get("/me")
+    async def me(self) -> str:
+        return "child"
 ```
