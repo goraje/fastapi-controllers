@@ -84,6 +84,8 @@ jobs:
     name: Validate release commit and wheel
     needs: build
     uses: ./.github/workflows/checks.yml
+    with:
+      wheel-artifact: wheel
 
   publish:
     name: Publish wheel to PyPI
