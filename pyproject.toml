@@ -1,82 +1,113 @@
-[tool.poetry]
+[project]
 name = "fastapi-controllers"
-version = "0.3.0"
+dynamic = ["version"]
+authors = [
+    { name = "Jerzy Góra", email = "j.gora89@gmail.com" },
+]
 description = "Simple Controller implementation for FastAPI"
-authors = ["Jerzy Góra <j.gora89@gmail.com>"]
-license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/goraje/fastapi-controllers"
-repository = "https://github.com/goraje/fastapi-controllers"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
 keywords = ["fastapi", "controller", "cbv", "routing"]
 classifiers = [
-    "Operating System :: MacOS :: MacOS X",
-    "Operating System :: Microsoft :: Windows",
-    "Operating System :: POSIX",
     "Framework :: FastAPI",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Libraries",
+    "Typing :: Typed",
 ]
-packages = [
-    { include = "fastapi_controllers" },
-    { include = "tests", format = "sdist" },
+dependencies = [
+    "fastapi",
 ]
 
-[tool.poetry.dependencies]
-python = "^3.8"
-fastapi = "*"
-
-[tool.poetry.group.lint]
-optional = true
-
-[tool.poetry.group.lint.dependencies]
-black = "*"
-isort = "*"
-ruff = "*"
-pre-commit = "*"
-
-[tool.poetry.group.test]
-optional = true
-
-[tool.poetry.group.test.dependencies]
-pytest = "*"
-pytest-describe = "*"
-pytest-spec = "*"
-httpx = "*"
-pytest-cov = "*"
-pytest-mock = "*"
-
-[tool.poetry.group.typing]
-optional = true
-
-[tool.poetry.group.typing.dependencies]
-mypy = "*"
-
-[tool.black]
-line-length = 150
-
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-include_trailing_comma = true
-line_length = 150
-
-[tool.ruff]
-line-length = 150
-select = ["B", "E", "F", "PIE"]
-
-[tool.ruff.mccabe]
-max-complexity = 10
-
-[tool.pytest.ini_options]
-addopts = """--color=yes \
---spec \
---cov=fastapi_controllers \
---cov-report=term-missing \
---cov-fail-under=90"""
-console_output_style = "classic"
-
-[tool.mypy]
-disallow_untyped_defs = true
+[project.urls]
+Homepage = "https://github.com/goraje/fastapi-controllers"
+Source = "https://github.com/goraje/fastapi-controllers"
+Issues = "https://github.com/goraje/fastapi-controllers/issues"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatch-vcs>=0.5.0", "hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+    "src",
+    "tests",
+    "LICENSE",
+    "README.md",
+    "pyproject.toml",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=6.0.0",
+    "pytest-describe>=2.2.0",
+    "pytest-mock>=3.14.0",
+    "pytest-sugar>=1.1.1",
+    "pytest-xdist>=3.8.0",
+]
+# Exact versions: the pre-commit hooks and CI run these from uv.lock.
+lint = [
+    "basedpyright==1.40.2",
+    "prek==0.5.5",
+    "ruff==0.16.10",
+    "ty==0.0.84",
+    "typos==1.50.3",
+]
+
+[tool.uv]
+default-groups = ["dev", "lint"]
+
+[tool.ruff]
+target-version = "py311"
+extend-exclude = ["*.md"]
+lint.select = [
+    "A",
+    "ANN",
+    "B",
+    "C4",
+    "C90",
+    "E",
+    "ERA",
+    "F",
+    "I",
+    "PIE",
+    "PT",
+    "PYI",
+    "SLF001",
+    "TID251",
+    "UP031",
+    "W",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.basedpyright]
+include = ["src", "tests"]
+pythonVersion = "3.11"
+typeCheckingMode = "recommended"
+# Ignored .write()/.add() results are normal here; `_ = ...` on every one is noise.
+reportUnusedCallResult = "none"
+# Long help and error text is wrapped as adjacent string literals throughout.
+reportImplicitStringConcatenation = "none"
+
+[tool.pytest.ini_options]
+addopts = "-n auto --strict-markers --strict-config"
+testpaths = ["tests"]
+xfail_strict = true
+filterwarnings = ["error"]
+
+[tool.coverage.report]
+fail_under = 90

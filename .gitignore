@@ -1,9 +1,22 @@
-__pycache__
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
 .coverage
-.mypy_cache
-.pytest_cache
+
+# Virtual environments
+.venv
 .python-version
-.ruff_cache
 .vscode
-dist
-poetry.lock
+
+# AI-related
+CLAUDE.md
+.claudeignore
+.token-optimizer
+.claude

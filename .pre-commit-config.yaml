@@ -1,20 +1,46 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v6.0.0
     hooks:
-      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-illegal-windows-names
+      - id: check-merge-conflict
       - id: check-toml
+      - id: check-yaml
+      - id: debug-statements
       - id: end-of-file-fixer
+      - id: fix-byte-order-marker
+      - id: mixed-line-ending
+        args: [--fix=lf]
       - id: trailing-whitespace
-  - repo: https://github.com/psf/black
-    rev: 22.3.0
+        args: [--markdown-linebreak-ext=md]
+  # The tools below run at the versions pinned in uv.lock (the "lint" group).
+  - repo: local
     hooks:
-      - id: black
-  - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.233
-    hooks:
-      - id: ruff
+      - id: typos
+        name: typos
+        entry: uv run typos
+        language: unsupported
+        types: [text]
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --fix --force-exclude
+        language: unsupported
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format --force-exclude
+        language: unsupported
+        types_or: [python, pyi]
+      - id: ty-check
+        name: ty check
+        entry: uv run ty check
+        language: unsupported
+        types_or: [python, pyi]
+      - id: basedpyright
+        name: basedpyright
+        entry: uv run basedpyright
+        language: unsupported
+        types_or: [python, pyi]
+        pass_filenames: false
