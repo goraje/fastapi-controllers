@@ -5,7 +5,7 @@ import inspect
 from collections.abc import Callable, Sequence
 from enum import Enum
 from types import FunctionType
-from typing import ClassVar, Concatenate, ParamSpec, TypeVar, cast
+from typing import ClassVar, Concatenate, ParamSpec, Protocol, TypeVar, cast
 
 from fastapi import APIRouter, params
 
@@ -32,12 +32,20 @@ _Route = tuple[
 ]
 
 
+class _Decorator(Protocol):
+    # A generic __call__ keeps the decorated method's type in every checker;
+    # ty loses the TypeVar of a plain Callable[[_F], _F] return.
+    def __call__(self, func: _F, /) -> _F: ...
+
+
 def _route(
     method: Callable[Concatenate[APIRouter, _P], object],
-) -> Callable[_P, Callable[[_F], _F]]:
+) -> Callable[_P, _Decorator]:
     """Mirror an APIRouter decorator method; record its arguments on the function."""
 
-    def factory(*args: _P.args, **kwargs: _P.kwargs) -> Callable[[_F], _F]:
+    def factory(*args: _P.args, **kwargs: _P.kwargs) -> _Decorator:
+        inspect.signature(method).bind(None, *args, **kwargs)
+
         def mark(func: _F) -> _F:
             routes = vars(func).setdefault(_ROUTES, [])  # pyright: ignore[reportAny]
             routes.append((method, args, kwargs))  # pyright: ignore[reportAny]
