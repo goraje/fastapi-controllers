@@ -15,7 +15,7 @@ from fastapi import Depends, FastAPI
 from starlette.types import Message, Scope
 
 import fastapi_controllers
-from fastapi_controllers import Controller, get
+from fastapi_controllers import create_router, get, router
 
 
 def greeting() -> str:
@@ -23,9 +23,8 @@ def greeting() -> str:
 
 
 @final
-class Greeter(Controller):
-    prefix = "/greet"
-
+@router(prefix="/greet")
+class Greeter:
     def __init__(self, word: Annotated[str, Depends(greeting)]) -> None:
         self.word: str = word
 
@@ -75,7 +74,7 @@ class InstalledWheelTests(unittest.TestCase):
 
     def test_controller_round_trip(self) -> None:
         app = FastAPI()
-        app.include_router(Greeter.create_router())
+        app.include_router(create_router(Greeter))
         self.assertEqual(call(app, "/greet", b"name=wheel"), (200, b'"hello:wheel"'))
 
     def test_bad_decorator_argument_raises(self) -> None:
